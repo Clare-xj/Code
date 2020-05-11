@@ -13,25 +13,34 @@ using namespace  std;
 int* color;
 int *scc;
 stack<int>stk;
+vector<int> pk;
 vector< vector<int>> G;
 vector<vector<int>>GT;
 vector<int> header;
 void DFSFindB(int v);
+bool * rela;
+struct son
+{
+    int leader;
+    int impact;
+    son(int lea,int imp)
+    {
+        leader=lea;
+        impact =imp;
+    }
+};
 struct Node{
+    int leader;
+    int num;
     vector<int> arr;
     vector<int> decend;
-    int sum;
-    Node()
-    {
-        sum=0;
-    }
 };
 vector<Node>compressedG;
 void DFS(int);
 void dfsTsweep(int);
 void DFSFindB(int);
-//int MAX=0;
-//int TAG=-1;
+
+
 int main() {
     vector<string>strs;
     string str;
@@ -39,14 +48,17 @@ int main() {
     {
         strs.push_back(str);
     }
+    pk.push_back(-1);
     int num=strs.size();
     color=new int[num];
     scc=new int[num];
+    rela=new bool[num];
     memset(color, 0, sizeof(int) * num);
+    memset(rela, 0, sizeof(bool) * num);
 
-    G.resize(num);
-    GT.resize(num);
-    compressedG.resize(num);
+    G.resize(strs.size());
+    GT.resize(strs.size());
+    compressedG.resize(strs.size());
     for(int i=0;i<strs.size();i++){
         std::stringstream ss;
         ss<<strs[i];
@@ -62,13 +74,14 @@ int main() {
         if(color[i]==white)
         {
             DFS(i);
+            rela[i]=0;
         }    
         
     }
     memset(scc,-1,sizeof(int)*num);
     memset(color, 0, sizeof(int) * num);
 
-    dfsTsweep(0);
+   dfsTsweep(0);
     memset(color, 0, sizeof(int) * num);
 
     for(int i=0;i<header.size();i++)
@@ -79,13 +92,13 @@ int main() {
    
     int max=0;
     int tag=-1;
-    for(int i=0;i<header.size();i++)
+    for(int i=0;i<compressedG.size();i++)
     {
         int sum=0;
         vector<int> node=compressedG[i].decend;
         for(int j=0;j<node.size();j++)
         {
-            sum+=compressedG[j].arr.size();
+            sum+=compressedG[j].num;
         }
         if(sum>max)
         { max=sum;
@@ -143,6 +156,7 @@ void dfsT(int v,Node& node,int leader )
     }
     //<Postorderprocessing of vertex v, including final computation of ans>
     color[v] = black;
+    node.num++;
     node.arr.push_back(v);
     //  return ans
 }
@@ -156,9 +170,10 @@ void dfsTsweep(int tmp)
         {
             header.push_back(v);
             Node node;
+            node.num=0;
+            node.leader=v;
             dfsT(v,node,v);
             node.decend.push_back(v);
-            node.sum=node.arr.size();
             compressedG[v]=node;
         }
     }
@@ -166,7 +181,7 @@ void dfsTsweep(int tmp)
 
 void DFSFindB(int v) {
 
-    vector<int> remAdj =G[v];
+    vector<int> remAdj = G[v];
     int i = 0;
     color[v]=gray;
     while (remAdj.size() != i)
@@ -175,25 +190,17 @@ void DFSFindB(int v) {
             //  <Exploratory processing for tree edge vw>
         {
             if(color[w]==gray)  break;
-            else if(scc[w]==scc[v]&&color[w]==white) 
-                DFSFindB(w);
-            else if(scc[w]==scc[v]&&color[w]==black)
-                break;
-            else 
+            DFSFindB(w);
+            
+            vector<int> dv=compressedG[v].decend;
+            vector<int> dw=compressedG[w].decend;
+            for(int i=0;i<dw.size();i++)
             {
-                if(color[w]==white)
-                    DFSFindB(w);
-           
-                vector<int> dv=compressedG[scc[v]].decend;
-                vector<int> dw=compressedG[scc[w]].decend;
-                for(int i=0;i<dw.size();i++)
+                bool flag=1;
+                vector<int>::iterator it=find(dv.begin(),dv.end(),dw[i]);
+                if(it==dv.end())
                 {
-                    vector<int>::iterator it=find(dv.begin(),dv.end(),dw[i]);
-                    if(it==dv.end())
-                    {
-                        compressedG[scc[v]].decend.push_back(dw[i]);
-                        compressedG[scc[v]].sum+=compressedG[dw[i]].sum;
-                    }
+                    compressedG[v].decend.push_back(dw[i]);
                 }
             }
             
